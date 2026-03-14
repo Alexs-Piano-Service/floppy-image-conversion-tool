@@ -1,0 +1,115 @@
+#form-cont {
+    margin-bottom: 20px;
+    width: 100%;
+    padding: 30px 20px 0;
+    text-align: center;
+    background: #ccc;
+    border: 1px solid #000;
+}
+
+#floppy-form {
+    margin: 0;
+}
+
+#floppy-form select,
+#floppy-form input,
+#floppy-form button {
+    max-width: 100%;
+}
+
+.upload-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.upload-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.upload-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.btn {
+    padding: 0.45rem 1.2rem;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+    background-color: #7c46a4;
+    border: 0;
+}
+
+.btn:hover {
+    background-color: #5a2482 !important;
+}
+
+.filename {
+    font-size: 0.95rem;
+    color: #222;
+}
+
+.upload-input:focus + .filename,
+.upload-input:valid + .filename {
+    font-weight: 600;
+}
+
+.fic-advanced-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 14px;
+}
+
+.fic-options-panel {
+    margin-bottom: 20px;
+}
+
+.fic-field-label {
+    display: block;
+    margin-bottom: 10px;
+}
+
+#status-container {
+    border: 1px solid #e0e0f0;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    background: #fafbff;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+#status-container p {
+    margin-bottom: 5px;
+}
+
+.fic-status-bar {
+    width: 100%;
+    height: 20px;
+}
+
+#status-bar::-webkit-progress-bar {
+    background: #e2e2ee;
+    border-radius: 999px;
+}
+
+#status-bar::-webkit-progress-value {
+    background: #8a4bbf;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+}
+
+#status-bar::-moz-progress-bar {
+    background: #8a4bbf;
+    border-radius: 999px;
+    transition: width 0.35s ease;
+}
