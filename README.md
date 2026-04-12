@@ -10,6 +10,7 @@ This plugin exposes a REST API for conversion jobs, polling status, and download
 - Built-in optional ClamAV scan on upload
 - Support for many legacy floppy image formats
 - Optional ZIP extraction workflow (`7z` + `zip`)
+- Automatic repair for 720 KB Yamaha/FAT12 images with a blank or omitted first sector before ZIP extraction
 - Shortcodes for rendering a converter form and progress bar
 - Daily cleanup of old conversion artifacts
 
@@ -19,6 +20,7 @@ This plugin exposes a REST API for conversion jobs, polling status, and download
 - PHP with `exec()` available
 - Greaseweazle CLI (`gw`) installed on the server (required)
 - `7z` and `zip` CLI tools available for ZIP output
+- PHP CLI available to the web process for Yamaha/FAT12 copy-protection repair; set the `fic_php_cli_path` filter if needed
 - Standard shell tools (`find`, `rm`, `ps`)
 - `clamdscan` (optional, used when available)
 
@@ -152,6 +154,10 @@ add_filter( 'fic_greaseweazle_cli_path', function () {
 add_filter( 'fic_clamdscan_path', function () {
     return '/usr/bin/clamdscan';
 } );
+
+add_filter( 'fic_php_cli_path', function () {
+    return '/usr/bin/php';
+} );
 ```
 
 ## Storage, cleanup, and job lifetime
@@ -178,6 +184,7 @@ add_filter( 'fic_clamdscan_path', function () {
 - `includes/cleanup.php` scheduled artifact cleanup
 - `templates/converter-form.php` shortcode HTML template
 - `assets/floppy-converter.css` shortcode CSS
+- `assets/repair-copy-protected-yamaha-720k.php` copy-protected Yamaha/FAT12 repair helper
 
 ## Development
 

@@ -3,7 +3,7 @@
  * Plugin Name: Floppy Image Converter
  * Plugin URI:  https://alexanderpeppe.com/
  * Description: Async REST API to convert floppy images via Greaseweazle, poll status, extract & zip, and report errors.
- * Version:     1.3.0
+ * Version:     1.3.1
  * Author:      Alexander Peppe
  * Author URI:  https://alexanderpeppe.com/
  * License:     Public Domain
@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'FIC_PLUGIN_VERSION' ) ) {
-    define( 'FIC_PLUGIN_VERSION', '1.3.0' );
+    define( 'FIC_PLUGIN_VERSION', '1.3.1' );
 }
 if ( ! defined( 'FIC_PLUGIN_FILE' ) ) {
     define( 'FIC_PLUGIN_FILE', __FILE__ );

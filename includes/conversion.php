@@ -148,7 +148,10 @@ function fic_build_shell_steps( array $job ) {
     $job_id   = $job['job_id'];
 
     $gw_cli      = fic_get_greaseweazle_cli_path();
+    $php_cli     = fic_get_php_cli_path();
+    $repair_cli  = FIC_PLUGIN_DIR . 'assets/repair-copy-protected-yamaha-720k.php';
     $tmp_img     = sprintf( '%1$s/IMG-%2$s.img', $base_dir, $job_id );
+    $extract_img = sprintf( '%1$s/%2$s-extractable.img', $base_dir, $job_id );
     $tmp_dir     = sprintf( '%1$s/%2$s_zip', $base_dir, $job_id );
     $working_img = ( 'img' === $ext ) ? $in_path : $tmp_img;
 
@@ -189,18 +192,27 @@ function fic_build_shell_steps( array $job ) {
             3,
             $log_file,
             sprintf(
-                '( 7z x -y -o%1$s %2$s >> %3$s 2>&1 ) || { echo %4$s >> %3$s; exit 1; }',
-                escapeshellarg( $tmp_dir ),
+                '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s %3$s %4$s >> %5$s 2>&1; else echo %6$s >> %5$s && cp -f %3$s %4$s >> %5$s 2>&1; fi && 7z x -y -o%7$s %4$s >> %5$s 2>&1 ) || { echo %8$s >> %5$s; exit 1; }',
+                escapeshellarg( $php_cli ),
+                escapeshellarg( $repair_cli ),
                 escapeshellarg( $working_img ),
+                escapeshellarg( $extract_img ),
                 escapeshellarg( $log_file ),
-                escapeshellarg( 'ERROR: 7z could not extract files from image. Verify format and that the image is not copy-protected.' )
+                escapeshellarg( 'Copy-protection repair skipped: PHP CLI not found; using original image.' ),
+                escapeshellarg( $tmp_dir ),
+                escapeshellarg( 'ERROR: Could not prepare or extract files from image. Verify format and that the image is not unsupported copy-protected media.' )
             )
         );
 
         $steps[] = fic_build_logged_step_command(
             4,
             $log_file,
-            sprintf( 'rm -f %s >> %s 2>&1', escapeshellarg( $working_img ), escapeshellarg( $log_file ) )
+            sprintf(
+                'rm -f %1$s %2$s >> %3$s 2>&1',
+                escapeshellarg( $working_img ),
+                escapeshellarg( $extract_img ),
+                escapeshellarg( $log_file )
+            )
         );
 
         $steps[] = fic_build_logged_step_command(

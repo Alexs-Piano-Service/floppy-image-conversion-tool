@@ -142,7 +142,7 @@ function fic_describe_step( $step, $out_path ) {
         case 2:
             return 'Normalising image via gw convert';
         case 3:
-            return $out_is_zip ? 'Extracting files from intermediate image' : 'Preparing output image';
+            return $out_is_zip ? 'Preparing image and extracting files' : 'Preparing output image';
         case 4:
             return $out_is_zip ? 'Cleaning up intermediate image' : 'Finalising conversion';
         case 5:

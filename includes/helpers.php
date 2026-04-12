@@ -53,6 +53,25 @@ function fic_get_clamdscan_path() {
 }
 
 /**
+ * PHP CLI executable location, filterable for deployment-specific paths.
+ *
+ * @return string
+ */
+function fic_get_php_cli_path() {
+    $default = 'php';
+
+    if ( defined( 'PHP_BINARY' ) && is_string( PHP_BINARY ) && '' !== PHP_BINARY && @is_executable( PHP_BINARY ) ) {
+        $basename = basename( PHP_BINARY );
+
+        if ( preg_match( '/^php(?:[0-9.]+)?$/', $basename ) ) {
+            $default = PHP_BINARY;
+        }
+    }
+
+    return apply_filters( 'fic_php_cli_path', $default );
+}
+
+/**
  * Convert historical alias extensions into canonical input format names.
  *
  * @param string $extension Uploaded extension.
