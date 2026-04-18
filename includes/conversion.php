@@ -110,6 +110,14 @@ function fic_validate_requested_formats( $input_ext, $out_fmt, $diskdef ) {
         );
     }
 
+    if ( ( 'ede' === $input_ext || 'ede' === $out_fmt ) && ! fic_diskdef_supports_ensoniq_ede( $diskdef ) ) {
+        return new WP_Error(
+            'invalid_diskdef',
+            'EDE conversion requires the Ensoniq EPS/EPS16 800K disk definition.',
+            [ 'status' => 400 ]
+        );
+    }
+
     return true;
 }
 
@@ -160,11 +168,13 @@ function fic_build_shell_steps( array $job ) {
     $repair_cli  = FIC_PLUGIN_DIR . 'assets/repair-copy-protected-yamaha-720k.php';
     $efe_cli     = FIC_PLUGIN_DIR . 'assets/extract-ensoniq-efe.php';
     $efe_img_cli = FIC_PLUGIN_DIR . 'assets/create-ensoniq-img-from-efe.php';
+    $ede_cli     = FIC_PLUGIN_DIR . 'assets/convert-ensoniq-ede.php';
     $tmp_img     = sprintf( '%1$s/IMG-%2$s.img', $base_dir, $job_id );
     $efe_img     = sprintf( '%1$s/EFE-%2$s.img', $base_dir, $job_id );
+    $ede_img     = sprintf( '%1$s/EDE-%2$s.img', $base_dir, $job_id );
     $extract_img = sprintf( '%1$s/%2$s-extractable.img', $base_dir, $job_id );
     $tmp_dir     = sprintf( '%1$s/%2$s_zip', $base_dir, $job_id );
-    $working_img = ( 'efe' === $ext ) ? $efe_img : ( ( 'img' === $ext ) ? $in_path : $tmp_img );
+    $working_img = ( 'efe' === $ext ) ? $efe_img : ( ( 'ede' === $ext ) ? $ede_img : ( ( 'img' === $ext ) ? $in_path : $tmp_img ) );
 
     $steps   = [];
     $steps[] = fic_build_logged_step_command(
@@ -173,7 +183,22 @@ function fic_build_shell_steps( array $job ) {
         sprintf( 'mkdir -p %s', escapeshellarg( $tmp_dir ) )
     );
 
-    if ( 'efe' === $ext ) {
+    if ( 'ede' === $ext ) {
+        $steps[] = fic_build_logged_step_command(
+            2,
+            $log_file,
+            sprintf(
+                '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s to-img %3$s %4$s >> %5$s 2>&1; else echo %6$s >> %5$s; exit 1; fi ) || { echo %7$s >> %5$s; exit 1; }',
+                escapeshellarg( $php_cli ),
+                escapeshellarg( $ede_cli ),
+                escapeshellarg( $in_path ),
+                escapeshellarg( $ede_img ),
+                escapeshellarg( $log_file ),
+                escapeshellarg( 'ERROR: PHP CLI not found; cannot convert EDE to IMG.' ),
+                escapeshellarg( 'ERROR: Could not convert EDE to IMG. Verify this is a valid Ensoniq EPS/EPS16 EDE disk image.' )
+            )
+        );
+    } elseif ( 'efe' === $ext ) {
         $steps[] = fic_build_logged_step_command(
             2,
             $log_file,
@@ -288,6 +313,8 @@ function fic_build_shell_steps( array $job ) {
     $cleanup_paths = [ escapeshellarg( $in_path ) ];
     if ( 'efe' === $ext ) {
         $cleanup_paths[] = escapeshellarg( $efe_img );
+    } elseif ( 'ede' === $ext ) {
+        $cleanup_paths[] = escapeshellarg( $ede_img );
     } elseif ( 'img' !== $ext ) {
         $cleanup_paths[] = escapeshellarg( $tmp_img );
     }
@@ -308,6 +335,27 @@ function fic_build_shell_steps( array $job ) {
                 escapeshellarg( $out_path ),
                 implode( ' ', $cleanup_paths ),
                 escapeshellarg( 'ERROR: Could not create EFE output from image. Verify this is an EPS/ASR disk image.' )
+            )
+        );
+
+        return $steps;
+    }
+
+    if ( 'ede' === $out_fmt ) {
+        $steps[] = fic_build_logged_step_command(
+            6,
+            $log_file,
+            sprintf(
+                '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s from-img %3$s %4$s >> %5$s 2>&1; else echo %6$s >> %5$s; exit 1; fi && rm -f %7$s >> %5$s 2>&1 && rm -rf %8$s >> %5$s 2>&1 ) || { echo %9$s >> %5$s; exit 1; }',
+                escapeshellarg( $php_cli ),
+                escapeshellarg( $ede_cli ),
+                escapeshellarg( $working_img ),
+                escapeshellarg( $out_path ),
+                escapeshellarg( $log_file ),
+                escapeshellarg( 'ERROR: PHP CLI not found; cannot convert IMG to EDE.' ),
+                implode( ' ', $cleanup_paths ),
+                escapeshellarg( $tmp_dir ),
+                escapeshellarg( 'ERROR: Could not create EDE output. Verify the intermediate image is a valid 800K Ensoniq EPS/EPS16 IMG.' )
             )
         );
 

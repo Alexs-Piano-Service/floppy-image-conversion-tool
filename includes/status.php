@@ -136,12 +136,13 @@ function fic_calculate_progress_percent( $max_step, $percent_in_log, $line_count
 function fic_describe_step( $step, $out_path ) {
     $out_is_zip = ( is_string( $out_path ) && '.zip' === substr( $out_path, -4 ) );
     $out_is_efe = ( is_string( $out_path ) && '.efe' === substr( $out_path, -4 ) );
+    $out_is_ede = ( is_string( $out_path ) && '.ede' === substr( $out_path, -4 ) );
 
     switch ( (int) $step ) {
         case 1:
             return 'Preparing temporary workspace';
         case 2:
-            return 'Normalising image via gw convert';
+            return 'Preparing intermediate image';
         case 3:
             return $out_is_zip ? 'Preparing image and extracting files' : 'Preparing output image';
         case 4:
@@ -152,11 +153,17 @@ function fic_describe_step( $step, $out_path ) {
             if ( $out_is_efe ) {
                 return 'Extracting EFE output';
             }
+            if ( $out_is_ede ) {
+                return 'Creating EDE output';
+            }
 
             return $out_is_zip ? 'Removing temporary ZIP workspace' : 'Finishing conversion';
         default:
             if ( $out_is_efe ) {
                 return 'Queued for EFE extraction';
+            }
+            if ( $out_is_ede ) {
+                return 'Queued for EDE conversion';
             }
 
             return $out_is_zip ? 'Queued for ZIP extraction' : 'Queued for image conversion';

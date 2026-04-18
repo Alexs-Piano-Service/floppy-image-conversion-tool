@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function fic_allowed_input_formats() {
     return [
         'a2r', 'adf', 'ads', 'adm', 'adl', 'bin', 'ctr', 'd1m', 'd2m', 'd4m', 'd64', 'd71', 'd81', 'd88',
-        'dcp', 'dim', 'dmk', 'do', 'dsd', 'dsk', 'edsk', 'efe', 'fd', 'fdi', 'hdm', 'hfe', 'ima', 'img',
+        'dcp', 'dim', 'dmk', 'do', 'dsd', 'dsk', 'ede', 'edsk', 'efe', 'fd', 'fdi', 'hdm', 'hfe', 'ima', 'img',
         'imd', 'ipf', 'mgt', 'msa', 'nfd', 'nsi', 'po', 'raw', 'sf7', 'scp', 'ssd', 'st', 'td0', 'xdf',
     ];
 }
@@ -88,6 +88,17 @@ function fic_diskdef_supports_ensoniq_efe( $diskdef ) {
 }
 
 /**
+ * Determine whether a disk definition uses the EPS/EPS16 disk size supported by EDE.
+ *
+ * @param string $diskdef Disk definition key.
+ *
+ * @return bool
+ */
+function fic_diskdef_supports_ensoniq_ede( $diskdef ) {
+    return 'ensoniq.800' === $diskdef;
+}
+
+/**
  * Diskdefs shown in the basic UI mode.
  *
  * @return array<string, string>
@@ -135,6 +146,7 @@ function fic_advanced_output_options() {
         'do'   => 'DO',
         'dsd'  => 'DSD',
         'dsk'  => 'DSK',
+        'ede'  => 'EDE',
         'edsk' => 'EDSK',
         'efe'  => 'EFE',
         'fd'   => 'FD',
