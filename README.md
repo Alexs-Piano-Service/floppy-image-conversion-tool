@@ -11,6 +11,7 @@ This plugin exposes a REST API for conversion jobs, polling status, and download
 - Support for many legacy floppy image formats
 - Optional ZIP extraction workflow (`7z` + `zip`)
 - Automatic repair for 720 KB Yamaha/FAT12 images with a blank or omitted first sector before ZIP extraction
+- Ensoniq EPS/EPS16/ASR EFE import/export via intermediate IMG images
 - Shortcodes for rendering a converter form and progress bar
 - Daily cleanup of old conversion artifacts
 
@@ -20,7 +21,7 @@ This plugin exposes a REST API for conversion jobs, polling status, and download
 - PHP with `exec()` available
 - Greaseweazle CLI (`gw`) installed on the server (required)
 - `7z` and `zip` CLI tools available for ZIP output
-- PHP CLI available to the web process for Yamaha/FAT12 copy-protection repair; set the `fic_php_cli_path` filter if needed
+- PHP CLI available to the web process for Yamaha/FAT12 copy-protection repair and Ensoniq EFE extraction; set the `fic_php_cli_path` filter if needed
 - Standard shell tools (`find`, `rm`, `ps`)
 - `clamdscan` (optional, used when available)
 
@@ -131,12 +132,19 @@ Typical `error` response:
 
 Input formats:
 
-- `a2r, adf, ads, adm, adl, bin, ctr, d1m, d2m, d4m, d64, d71, d81, d88, dcp, dim, dmk, do, dsd, dsk, edsk, fd, fdi, hdm, hfe, ima, img, imd, ipf, mgt, msa, nfd, nsi, po, raw, sf7, scp, ssd, st, td0, xdf`
+- `a2r, adf, ads, adm, adl, bin, ctr, d1m, d2m, d4m, d64, d71, d81, d88, dcp, dim, dmk, do, dsd, dsk, edsk, efe, fd, fdi, hdm, hfe, ima, img, imd, ipf, mgt, msa, nfd, nsi, po, raw, sf7, scp, ssd, st, td0, xdf`
 
 Output formats:
 
 - All input formats above
 - `zip`
+
+Ensoniq EFE notes:
+
+- Uploading an `.efe` first creates a temporary Ensoniq IMG using the selected `ensoniq.800` or `ensoniq.1600` disk definition, then passes that IMG to Greaseweazle for the requested output.
+- When `out_fmt=efe`, the selected Ensoniq image must contain exactly one exportable file. Use `out_fmt=zip` for disks with multiple files.
+- When `out_fmt=zip` and `diskdef` is `ensoniq.800` or `ensoniq.1600`, the ZIP contains extracted `.efe` files from the Ensoniq EPS/EPS16/ASR filesystem.
+- Other ZIP jobs continue to use the generic archive extraction path via `7z`.
 
 Disk definitions:
 
@@ -185,6 +193,8 @@ add_filter( 'fic_php_cli_path', function () {
 - `templates/converter-form.php` shortcode HTML template
 - `assets/floppy-converter.css` shortcode CSS
 - `assets/repair-copy-protected-yamaha-720k.php` copy-protected Yamaha/FAT12 repair helper
+- `assets/create-ensoniq-img-from-efe.php` Ensoniq EFE to IMG helper
+- `assets/extract-ensoniq-efe.php` Ensoniq EPS/EPS16/ASR EFE extraction helper
 
 ## Development
 

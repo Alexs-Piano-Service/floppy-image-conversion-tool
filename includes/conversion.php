@@ -102,6 +102,14 @@ function fic_validate_requested_formats( $input_ext, $out_fmt, $diskdef ) {
         return new WP_Error( 'invalid_diskdef', 'Disk definition not allowed.', [ 'status' => 400 ] );
     }
 
+    if ( ( 'efe' === $input_ext || 'efe' === $out_fmt ) && ! fic_diskdef_supports_ensoniq_efe( $diskdef ) ) {
+        return new WP_Error(
+            'invalid_diskdef',
+            'EFE conversion requires an Ensoniq EPS/ASR disk definition.',
+            [ 'status' => 400 ]
+        );
+    }
+
     return true;
 }
 
@@ -150,10 +158,13 @@ function fic_build_shell_steps( array $job ) {
     $gw_cli      = fic_get_greaseweazle_cli_path();
     $php_cli     = fic_get_php_cli_path();
     $repair_cli  = FIC_PLUGIN_DIR . 'assets/repair-copy-protected-yamaha-720k.php';
+    $efe_cli     = FIC_PLUGIN_DIR . 'assets/extract-ensoniq-efe.php';
+    $efe_img_cli = FIC_PLUGIN_DIR . 'assets/create-ensoniq-img-from-efe.php';
     $tmp_img     = sprintf( '%1$s/IMG-%2$s.img', $base_dir, $job_id );
+    $efe_img     = sprintf( '%1$s/EFE-%2$s.img', $base_dir, $job_id );
     $extract_img = sprintf( '%1$s/%2$s-extractable.img', $base_dir, $job_id );
     $tmp_dir     = sprintf( '%1$s/%2$s_zip', $base_dir, $job_id );
-    $working_img = ( 'img' === $ext ) ? $in_path : $tmp_img;
+    $working_img = ( 'efe' === $ext ) ? $efe_img : ( ( 'img' === $ext ) ? $in_path : $tmp_img );
 
     $steps   = [];
     $steps[] = fic_build_logged_step_command(
@@ -162,7 +173,23 @@ function fic_build_shell_steps( array $job ) {
         sprintf( 'mkdir -p %s', escapeshellarg( $tmp_dir ) )
     );
 
-    if ( 'img' !== $ext ) {
+    if ( 'efe' === $ext ) {
+        $steps[] = fic_build_logged_step_command(
+            2,
+            $log_file,
+            sprintf(
+                '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s %3$s %4$s %5$s >> %6$s 2>&1; else echo %7$s >> %6$s; exit 1; fi ) || { echo %8$s >> %6$s; exit 1; }',
+                escapeshellarg( $php_cli ),
+                escapeshellarg( $efe_img_cli ),
+                escapeshellarg( $in_path ),
+                escapeshellarg( $efe_img ),
+                escapeshellarg( $diskdef ),
+                escapeshellarg( $log_file ),
+                escapeshellarg( 'ERROR: PHP CLI not found; cannot create an Ensoniq IMG from EFE.' ),
+                escapeshellarg( 'ERROR: Could not create an Ensoniq IMG from EFE. Verify this is a valid EFE file and the selected Ensoniq disk has enough space.' )
+            )
+        );
+    } elseif ( 'img' !== $ext ) {
         $steps[] = fic_build_logged_step_command(
             2,
             $log_file,
@@ -188,21 +215,38 @@ function fic_build_shell_steps( array $job ) {
     }
 
     if ( 'zip' === $out_fmt ) {
-        $steps[] = fic_build_logged_step_command(
-            3,
-            $log_file,
-            sprintf(
-                '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s %3$s %4$s >> %5$s 2>&1; else echo %6$s >> %5$s && cp -f %3$s %4$s >> %5$s 2>&1; fi && 7z x -y -o%7$s %4$s >> %5$s 2>&1 ) || { echo %8$s >> %5$s; exit 1; }',
-                escapeshellarg( $php_cli ),
-                escapeshellarg( $repair_cli ),
-                escapeshellarg( $working_img ),
-                escapeshellarg( $extract_img ),
-                escapeshellarg( $log_file ),
-                escapeshellarg( 'Copy-protection repair skipped: PHP CLI not found; using original image.' ),
-                escapeshellarg( $tmp_dir ),
-                escapeshellarg( 'ERROR: Could not prepare or extract files from image. Verify format and that the image is not unsupported copy-protected media.' )
-            )
-        );
+        if ( fic_diskdef_supports_ensoniq_efe( $diskdef ) ) {
+            $steps[] = fic_build_logged_step_command(
+                3,
+                $log_file,
+                sprintf(
+                    '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s %3$s %4$s >> %5$s 2>&1; else echo %6$s >> %5$s; exit 1; fi ) || { echo %7$s >> %5$s; exit 1; }',
+                    escapeshellarg( $php_cli ),
+                    escapeshellarg( $efe_cli ),
+                    escapeshellarg( $working_img ),
+                    escapeshellarg( $tmp_dir ),
+                    escapeshellarg( $log_file ),
+                    escapeshellarg( 'ERROR: PHP CLI not found; cannot extract Ensoniq EFE files.' ),
+                    escapeshellarg( 'ERROR: Could not extract Ensoniq EFE files from image. Verify this is an EPS/ASR disk image.' )
+                )
+            );
+        } else {
+            $steps[] = fic_build_logged_step_command(
+                3,
+                $log_file,
+                sprintf(
+                    '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s %3$s %4$s >> %5$s 2>&1; else echo %6$s >> %5$s && cp -f %3$s %4$s >> %5$s 2>&1; fi && 7z x -y -o%7$s %4$s >> %5$s 2>&1 ) || { echo %8$s >> %5$s; exit 1; }',
+                    escapeshellarg( $php_cli ),
+                    escapeshellarg( $repair_cli ),
+                    escapeshellarg( $working_img ),
+                    escapeshellarg( $extract_img ),
+                    escapeshellarg( $log_file ),
+                    escapeshellarg( 'Copy-protection repair skipped: PHP CLI not found; using original image.' ),
+                    escapeshellarg( $tmp_dir ),
+                    escapeshellarg( 'ERROR: Could not prepare or extract files from image. Verify format and that the image is not unsupported copy-protected media.' )
+                )
+            );
+        }
 
         $steps[] = fic_build_logged_step_command(
             4,
@@ -242,8 +286,32 @@ function fic_build_shell_steps( array $job ) {
     }
 
     $cleanup_paths = [ escapeshellarg( $in_path ) ];
-    if ( 'img' !== $ext ) {
+    if ( 'efe' === $ext ) {
+        $cleanup_paths[] = escapeshellarg( $efe_img );
+    } elseif ( 'img' !== $ext ) {
         $cleanup_paths[] = escapeshellarg( $tmp_img );
+    }
+
+    if ( 'efe' === $out_fmt ) {
+        $steps[] = fic_build_logged_step_command(
+            6,
+            $log_file,
+            sprintf(
+                '( if command -v %1$s >/dev/null 2>&1; then %1$s %2$s %3$s %4$s >> %5$s 2>&1; else echo %6$s >> %5$s; exit 1; fi && cnt=$(find %4$s -type f -iname "*.efe" | wc -l) && if [ "$cnt" -ne 1 ]; then echo %7$s >> %5$s; exit 1; fi && efe_file=$(find %4$s -type f -iname "*.efe" | head -n 1) && mv "$efe_file" %8$s >> %5$s 2>&1 && rm -f %9$s >> %5$s 2>&1 && rm -rf %4$s >> %5$s 2>&1 ) || { echo %10$s >> %5$s; exit 1; }',
+                escapeshellarg( $php_cli ),
+                escapeshellarg( $efe_cli ),
+                escapeshellarg( $working_img ),
+                escapeshellarg( $tmp_dir ),
+                escapeshellarg( $log_file ),
+                escapeshellarg( 'ERROR: PHP CLI not found; cannot extract Ensoniq EFE files.' ),
+                escapeshellarg( 'ERROR: EFE output requires the image to contain exactly one exportable Ensoniq file. Use ZIP output for images with multiple files.' ),
+                escapeshellarg( $out_path ),
+                implode( ' ', $cleanup_paths ),
+                escapeshellarg( 'ERROR: Could not create EFE output from image. Verify this is an EPS/ASR disk image.' )
+            )
+        );
+
+        return $steps;
     }
 
     $steps[] = fic_build_logged_step_command(

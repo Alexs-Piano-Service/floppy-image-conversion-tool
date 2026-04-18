@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 function fic_allowed_input_formats() {
     return [
         'a2r', 'adf', 'ads', 'adm', 'adl', 'bin', 'ctr', 'd1m', 'd2m', 'd4m', 'd64', 'd71', 'd81', 'd88',
-        'dcp', 'dim', 'dmk', 'do', 'dsd', 'dsk', 'edsk', 'fd', 'fdi', 'hdm', 'hfe', 'ima', 'img',
+        'dcp', 'dim', 'dmk', 'do', 'dsd', 'dsk', 'edsk', 'efe', 'fd', 'fdi', 'hdm', 'hfe', 'ima', 'img',
         'imd', 'ipf', 'mgt', 'msa', 'nfd', 'nsi', 'po', 'raw', 'sf7', 'scp', 'ssd', 'st', 'td0', 'xdf',
     ];
 }
@@ -65,6 +65,29 @@ function fic_allowed_diskdefs() {
 }
 
 /**
+ * Disk definitions whose raw images can be exported as Ensoniq EFE files.
+ *
+ * @return string[]
+ */
+function fic_ensoniq_efe_diskdefs() {
+    return [
+        'ensoniq.800',
+        'ensoniq.1600',
+    ];
+}
+
+/**
+ * Determine whether a disk definition uses the EPS/ASR filesystem supported by EFE extraction.
+ *
+ * @param string $diskdef Disk definition key.
+ *
+ * @return bool
+ */
+function fic_diskdef_supports_ensoniq_efe( $diskdef ) {
+    return in_array( $diskdef, fic_ensoniq_efe_diskdefs(), true );
+}
+
+/**
  * Diskdefs shown in the basic UI mode.
  *
  * @return array<string, string>
@@ -113,6 +136,7 @@ function fic_advanced_output_options() {
         'dsd'  => 'DSD',
         'dsk'  => 'DSK',
         'edsk' => 'EDSK',
+        'efe'  => 'EFE',
         'fd'   => 'FD',
         'hdm'  => 'HDM',
         'ima'  => 'IMA',
@@ -156,8 +180,10 @@ function fic_default_output_format() {
  */
 function fic_diskdef_label( $diskdef ) {
     $labels = [
-        'ibm.720'  => 'IBM 720 DD',
-        'ibm.1440' => 'IBM 1440 HD',
+        'ibm.720'      => 'IBM 720 DD',
+        'ibm.1440'     => 'IBM 1440 HD',
+        'ensoniq.800'  => 'Ensoniq EPS/EPS16 800K',
+        'ensoniq.1600' => 'Ensoniq ASR 1600K',
     ];
 
     return isset( $labels[ $diskdef ] ) ? $labels[ $diskdef ] : $diskdef;
