@@ -186,14 +186,17 @@ function fic_get_status( WP_REST_Request $request ) {
     }
 
     $out_path = isset( $data['out'] ) ? (string) $data['out'] : '';
+    $out_fmt  = isset( $data['out_fmt'] ) ? (string) $data['out_fmt'] : strtolower( pathinfo( $out_path, PATHINFO_EXTENSION ) );
     $log_path = isset( $data['log'] ) ? (string) $data['log'] : '';
     $pid      = isset( $data['pid'] ) ? (int) $data['pid'] : 0;
+    $download_name = isset( $data['download_name'] ) ? (string) $data['download_name'] : fic_build_download_filename( 'converted-disk', $out_fmt );
 
     if ( $out_path && file_exists( $out_path ) ) {
         return rest_ensure_response(
             [
-                'status'       => 'complete',
-                'download_url' => esc_url_raw( fic_get_download_url( $out_path ) ),
+                'status'            => 'complete',
+                'download_url'      => esc_url_raw( fic_get_rest_download_url( $job_id, $out_fmt, $download_name ) ),
+                'download_filename' => $download_name,
             ]
         );
     }

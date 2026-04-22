@@ -35,6 +35,129 @@ function fic_get_download_url( $file_path ) {
 }
 
 /**
+ * Build a user-facing download filename from the original upload name.
+ *
+ * @param string $original_name Uploaded filename.
+ * @param string $out_fmt       Output format extension.
+ *
+ * @return string
+ */
+function fic_build_download_filename( $original_name, $out_fmt ) {
+    $basename = wp_basename( (string) $original_name );
+    $stem     = pathinfo( $basename, PATHINFO_FILENAME );
+    $stem     = sanitize_file_name( $stem );
+    $out_fmt  = strtolower( sanitize_key( (string) $out_fmt ) );
+
+    if ( '' === $stem ) {
+        $stem = 'converted-disk';
+    }
+
+    if ( '' === $out_fmt ) {
+        return $stem;
+    }
+
+    return sanitize_file_name( $stem . '.' . $out_fmt );
+}
+
+/**
+ * Normalise a requested download filename while forcing the output extension.
+ *
+ * @param string $filename Requested filename.
+ * @param string $out_fmt  Output format extension.
+ *
+ * @return string
+ */
+function fic_normalize_download_filename( $filename, $out_fmt ) {
+    return fic_build_download_filename( (string) $filename, $out_fmt );
+}
+
+/**
+ * Build the REST download URL for one conversion job.
+ *
+ * @param string $job_id            Job UUID.
+ * @param string $out_fmt           Output format extension.
+ * @param string $download_filename User-facing download filename.
+ *
+ * @return string
+ */
+function fic_get_rest_download_url( $job_id, $out_fmt, $download_filename ) {
+    return add_query_arg(
+        [
+            'job_id'   => (string) $job_id,
+            'out_fmt'  => (string) $out_fmt,
+            'filename' => fic_normalize_download_filename( $download_filename, $out_fmt ),
+        ],
+        rest_url( FIC_REST_NAMESPACE . '/download' )
+    );
+}
+
+/**
+ * Locate a completed output file for a job.
+ *
+ * @param string $job_id   Job UUID.
+ * @param string $out_fmt  Output format extension.
+ * @param array  $job_data Optional transient payload.
+ *
+ * @return string
+ */
+function fic_find_output_file_path( $job_id, $out_fmt, array $job_data = [] ) {
+    $out_fmt = strtolower( sanitize_key( (string) $out_fmt ) );
+
+    if ( isset( $job_data['out'] ) && is_string( $job_data['out'] ) && file_exists( $job_data['out'] ) ) {
+        return $job_data['out'];
+    }
+
+    if ( '' === $job_id || '' === $out_fmt ) {
+        return '';
+    }
+
+    $base_dir = fic_get_upload_base_dir();
+    $paths    = [
+        sprintf( '%1$s/%2$s.%3$s', $base_dir, $job_id, $out_fmt ),
+        sprintf( '%1$s/%2$s-converted.%3$s', $base_dir, $job_id, $out_fmt ),
+    ];
+
+    foreach ( $paths as $path ) {
+        if ( file_exists( $path ) ) {
+            return $path;
+        }
+    }
+
+    return '';
+}
+
+/**
+ * Stream one converted artifact to the client with a friendly filename.
+ *
+ * @param string $file_path          Absolute file path.
+ * @param string $download_filename  User-facing filename.
+ *
+ * @return void
+ */
+function fic_stream_download_file( $file_path, $download_filename ) {
+    if ( ! is_string( $file_path ) || '' === $file_path || ! is_file( $file_path ) || ! is_readable( $file_path ) ) {
+        status_header( 404 );
+        exit;
+    }
+
+    $mime = wp_check_filetype( $download_filename );
+    $type = isset( $mime['type'] ) && is_string( $mime['type'] ) && '' !== $mime['type'] ? $mime['type'] : 'application/octet-stream';
+
+    while ( ob_get_level() > 0 ) {
+        ob_end_clean();
+    }
+
+    nocache_headers();
+    header( 'Content-Description: File Transfer' );
+    header( 'Content-Type: ' . $type );
+    header( 'Content-Disposition: attachment; filename="' . str_replace( '"', '', $download_filename ) . '"' );
+    header( 'Content-Length: ' . (string) filesize( $file_path ) );
+
+    readfile( $file_path );
+    exit;
+}
+
+/**
  * Greaseweazle executable location, filterable for deployment-specific paths.
  *
  * @return string

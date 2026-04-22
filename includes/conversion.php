@@ -433,6 +433,7 @@ function fic_handle_convert( WP_REST_Request $request ) {
     $input_ext = fic_normalize_input_extension( $orig_ext );
     $job_id    = wp_generate_uuid4();
     $paths     = fic_build_job_paths( $base_dir, $job_id, $input_ext, $out_fmt );
+    $download_name = fic_build_download_filename( (string) $file['name'], $out_fmt );
 
     if ( false === @file_put_contents( $paths['log'], '' ) ) {
         return new WP_Error( 'log_init_failed', 'Could not initialise conversion log.', [ 'status' => 500 ] );
@@ -466,6 +467,8 @@ function fic_handle_convert( WP_REST_Request $request ) {
             'in'         => $paths['in'],
             'out'        => $paths['out'],
             'log'        => $paths['log'],
+            'out_fmt'    => $out_fmt,
+            'download_name' => $download_name,
             'pid'        => $pid,
             'step_total' => (int) FIC_TOTAL_STEPS,
         ],
@@ -475,7 +478,8 @@ function fic_handle_convert( WP_REST_Request $request ) {
     return rest_ensure_response(
         [
             'job_id'       => $job_id,
-            'download_url' => esc_url_raw( fic_get_download_url( $paths['out'] ) ),
+            'download_url' => esc_url_raw( fic_get_rest_download_url( $job_id, $out_fmt, $download_name ) ),
+            'download_filename' => $download_name,
         ]
     );
 }

@@ -83,7 +83,8 @@ Typical success response:
 ```json
 {
   "job_id": "f7d0f8f0-13cc-4a2b-b750-2f600c1f7f57",
-  "download_url": "https://example.com/wp-content/uploads/floppy-convert/f7d0f8f0-13cc-4a2b-b750-2f600c1f7f57.zip"
+  "download_url": "https://example.com/wp-json/floppy/v1/download?job_id=f7d0f8f0-13cc-4a2b-b750-2f600c1f7f57&out_fmt=zip&filename=disk.zip",
+  "download_filename": "disk.zip"
 }
 ```
 
@@ -115,9 +116,15 @@ Typical `complete` response:
 ```json
 {
   "status": "complete",
-  "download_url": "https://example.com/wp-content/uploads/floppy-convert/<job>.<fmt>"
+  "download_url": "https://example.com/wp-json/floppy/v1/download?job_id=<job>&out_fmt=<fmt>&filename=<clean-name>.<fmt>",
+  "download_filename": "<clean-name>.<fmt>"
 }
 ```
+
+### GET `/wp-json/floppy/v1/download?job_id=...&out_fmt=...&filename=...`
+
+Streams the finished conversion with a sanitized, user-facing filename via
+`Content-Disposition` while keeping UUID-based storage paths on disk.
 
 Typical `error` response:
 
