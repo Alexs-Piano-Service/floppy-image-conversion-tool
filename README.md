@@ -151,6 +151,7 @@ Ensoniq EDE notes:
 
 - EDE is a compact Giebler EPS/EPS16 disk-image container, not a single-file EFE container.
 - EDE conversion requires `diskdef=ensoniq.800`; the ASR 1600K sibling format is EDA.
+- Older classic EDE headers such as `EPS Disk` are supported in addition to newer `EPS-16 Disk` headers.
 - Uploading `.ede` first expands it to a temporary raw Ensoniq IMG, then passes that IMG to Greaseweazle for other output formats.
 - When `out_fmt=ede`, the intermediate IMG is compacted back to EDE after conversion.
 

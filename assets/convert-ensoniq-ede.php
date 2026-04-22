@@ -4,7 +4,8 @@
  *
  * EDE is a compact EPS/EPS16 disk-image container: a one-block header includes
  * a skip table, and only Ensoniq blocks marked used in the FAT are stored.
- * This follows EpsLin Neo's ConvertToImage and ConvertFromImage routines.
+ * This supports both the older "EPS Disk" header flavor seen in the wild and
+ * the newer EpsLin Neo "EPS-16 Disk" flavor.
  */
 
 if ( PHP_SAPI !== 'cli' ) {
@@ -18,9 +19,11 @@ const FIC_EDE_SKIP_START       = 0xA0;
 const FIC_EDE_SKIP_SIZE        = 200;
 const FIC_EDE_ID               = 0x03;
 const FIC_EDE_LABEL            = 'EPS-16 Disk';
+const FIC_EDE_CLASSIC_LABEL    = 'EPS Disk';
 const FIC_EDE_FAT_START_BLOCK  = 5;
 const FIC_EDE_FAT_ENTRIES_BLK  = 170;
 const FIC_EDE_FILLER_PATTERN   = "\x6D\xB6";
+const FIC_EDE_CLASSIC_EOF_OFF  = 0x5D;
 
 /**
  * @param string $message Error message.
@@ -78,10 +81,18 @@ function fic_ede_validate_header( $ede ) {
         fic_ede_fail( 'EDE file is too short.' );
     }
 
+    $banner = rtrim( substr( $ede, 2, 16 ) );
+    $has_eof = (
+        substr( $ede, FIC_EDE_CLASSIC_EOF_OFF, 3 ) === "\x0D\x0A\x1A"
+        || substr( $ede, FIC_EDE_SKIP_START - 3, 3 ) === "\x0D\x0A\x1A"
+    );
+    $marker = ord( $ede[ FIC_EDE_BLOCK_SIZE - 1 ] );
+
     if (
         substr( $ede, 0, 2 ) !== "\x0D\x0A"
-        || substr( $ede, FIC_EDE_SKIP_START - 3, 3 ) !== "\x0D\x0A\x1A"
-        || ord( $ede[ FIC_EDE_BLOCK_SIZE - 1 ] ) !== FIC_EDE_ID
+        || ! in_array( $banner, [ FIC_EDE_CLASSIC_LABEL, FIC_EDE_LABEL ], true )
+        || ! $has_eof
+        || ! in_array( $marker, [ 0x00, FIC_EDE_ID ], true )
     ) {
         fic_ede_fail( 'Input does not have a valid EDE header signature.' );
     }
@@ -180,18 +191,16 @@ function fic_ede_validate_img( $img ) {
  * @return string
  */
 function fic_ede_build_header( $skip_table ) {
-    $header = str_repeat( ' ', FIC_EDE_BLOCK_SIZE );
+    $header = str_repeat( "\0", FIC_EDE_BLOCK_SIZE );
 
     $write = static function ( $offset, $bytes ) use ( &$header ) {
         $header = substr_replace( $header, $bytes, $offset, strlen( $bytes ) );
     };
 
     $write( 0, "\x0D\x0A" );
-    $write( 2, FIC_EDE_LABEL );
-    $write( 0x4E, "\x0D\x0A" );
-    $write( FIC_EDE_SKIP_START - 3, "\x0D\x0A\x1A" );
+    $write( 2, str_pad( FIC_EDE_CLASSIC_LABEL, FIC_EDE_CLASSIC_EOF_OFF - 2, ' ' ) );
+    $write( FIC_EDE_CLASSIC_EOF_OFF, "\x0D\x0A\x1A" );
     $write( FIC_EDE_SKIP_START, $skip_table );
-    $header[ FIC_EDE_BLOCK_SIZE - 1 ] = chr( FIC_EDE_ID );
 
     return $header;
 }
